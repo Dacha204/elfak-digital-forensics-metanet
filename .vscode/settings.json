@@ -1,0 +1,6 @@
+{
+    "python.pythonPath": "/home/dacha204/.local/share/virtualenvs/metanet-YhPCNp87/bin/python",
+    "python.linting.pylintEnabled": true,
+    "python.linting.pycodestyleEnabled": true,
+    "python.linting.enabled": true
+}

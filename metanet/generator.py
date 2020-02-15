@@ -5,7 +5,6 @@ from datetime import datetime
 # Settings
 verbose = False
 batch_interval_generator_range = (60, 600)
-batch_density_generator_range = (0.5, 0.5)
 domains = [
     'google.com',
     'youtube.com',

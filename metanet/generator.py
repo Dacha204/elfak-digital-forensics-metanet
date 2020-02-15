@@ -3,7 +3,7 @@ import numpy as np
 from datetime import datetime
 
 # Settings
-debug = False
+verbose = False
 batch_interval_generator_range = (60, 600)
 batch_density_generator_range = (0.5, 0.5)
 domains = [
@@ -55,7 +55,7 @@ def __generate_batch_packets(from_timestamp: int,
     to_timestamp = from_timestamp + time_interval
     packet_count = round(packet_density * time_interval)
 
-    if debug:
+    if verbose:
         click.secho(
             f'=> Generating batch packets\n'
             f'From     : {datetime.fromtimestamp(from_timestamp).isoformat()}\n'
@@ -101,11 +101,16 @@ def __generate_batch(sample_from_timestamp: int, sample_to_timestamp: int):
     }
 
 
-def generate_sample(from_timestamp: int, to_timestamp: int, desired_density: float):
+def generate_sample(from_timestamp: int,
+                    to_timestamp: int,
+                    desired_density: float,
+                    seed: int = None):
     '''Generates sample package in desired [from_timestamp, to_timestamp]
     interval with desired density of packets
     '''
     sample_interval = to_timestamp - from_timestamp
+    if seed is not None:
+        np.random.seed(seed)
 
     def current_density(packets):
         return len(packets)/sample_interval
@@ -123,28 +128,3 @@ def generate_sample(from_timestamp: int, to_timestamp: int, desired_density: flo
         'density': current_density(sample),
         'packets': sample
     }
-
-
-def __dbg_plot_sample(sample):
-    import matplotlib.pylab as plt
-    import random
-    colors = ['b', 'g', 'r', 'c', 'y', 'k', 'm']
-
-    groups = dict()
-    for packet in sample['packets']:
-        groups.setdefault(packet['domain'], []).append(packet)
-
-    index = 0
-    for group in groups.keys():
-        group_items = groups[group]
-        if not group_items:
-            continue
-
-        x_axis = [packet['datetime']['timestamp'] - sample['from_timestamp']
-                  for packet in group_items]
-        y_axis = [index] * len(group_items)
-        plt.plot(x_axis, y_axis, f"{random.choice(colors)}.")
-        index += 1
-
-    plt.grid()
-    plt.show()

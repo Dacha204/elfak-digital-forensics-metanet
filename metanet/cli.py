@@ -1,6 +1,7 @@
 import click
-import generator
 import json
+import generator
+import utilities
 from datetime import datetime
 
 
@@ -18,16 +19,23 @@ def cli():
               type=float, default=0.02, show_default=True)
 @click.option('--interval-gen-range',
               nargs=2, type=int, default=(60, 600), show_default=True)
-def generate_sample(from_datetime, to_datetime, density, interval_gen_range):
+@click.option('--plot',
+              is_flag=True, default=False)
+@click.option('--seed', type=int, default=None)
+def generate_sample(from_datetime, to_datetime,
+                    density, interval_gen_range,
+                    plot, seed):
 
     generator.batch_interval_generator_range = interval_gen_range
     sample = generator.generate_sample(
         from_timestamp=datetime.timestamp(from_datetime),
         to_timestamp=datetime.timestamp(to_datetime),
-        desired_density=density)
+        desired_density=density,
+        seed=seed)
 
-    generator.__dbg_plot_sample(sample)
     click.secho(json.dumps(sample))
+    if plot:
+        utilities.plot_sample(sample)
 
 
 @cli.command()

@@ -33,9 +33,9 @@ def generate_sample(from_datetime, to_datetime,
         desired_density=density,
         seed=seed)
 
-    click.secho(json.dumps(sample))
+    click.secho(json.dumps(sample['packets']))
     if plot:
-        utilities.plot_sample(sample)
+        utilities.plot_sample_packets(sample['packets'])
 
 
 @cli.command()

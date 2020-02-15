@@ -1,6 +1,10 @@
 {
     "python.pythonPath": "/home/dacha204/.local/share/virtualenvs/metanet-YhPCNp87/bin/python",
+    "python.linting.enabled": true,
     "python.linting.pylintEnabled": true,
+    "python.linting.pylintArgs": ["--generate-members"],
     "python.linting.pycodestyleEnabled": true,
-    "python.linting.enabled": true
+    "python.linting.pycodestyleCategorySeverity.E": "Warning",
+    "python.linting.pycodestyleCategorySeverity.W": "Warning",
+    "editor.rulers": [79]
 }

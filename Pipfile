@@ -6,9 +6,12 @@ verify_ssl = true
 [dev-packages]
 pylint = "*"
 pycodestyle = "*"
+autopep8 = "*"
 
 [packages]
 click = "*"
+numpy = "*"
+matplotlib = "*"
 
 [requires]
 python_version = "3.8"

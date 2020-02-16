@@ -12,6 +12,7 @@ autopep8 = "*"
 click = "*"
 numpy = "*"
 matplotlib = "*"
+elasticsearch = "*"
 
 [requires]
 python_version = "3.8"

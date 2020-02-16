@@ -1,9 +1,9 @@
 import click
+import simple_logger as logger
 import numpy as np
 from datetime import datetime
 
 # Settings
-verbose = False
 batch_interval_generator_range = (60, 600)
 domains = [
     'google.com',
@@ -54,15 +54,13 @@ def __generate_batch_packets(from_timestamp: int,
     to_timestamp = from_timestamp + time_interval
     packet_count = round(packet_density * time_interval)
 
-    if verbose:
-        click.secho(
-            f'=> Generating batch packets\n'
-            f'From     : {datetime.fromtimestamp(from_timestamp).isoformat()}\n'
-            f'To       : {datetime.fromtimestamp(to_timestamp).isoformat()}\n'
-            f'Interval : {time_interval}s\n'
-            f'Density  : {packet_density}\n'
-            f'Packets  : {packet_count}',
-            dim=True)
+    logger.log_debug(
+        f'=> Generating batch packets\n'
+        f'From     : {datetime.fromtimestamp(from_timestamp).isoformat()}\n'
+        f'To       : {datetime.fromtimestamp(to_timestamp).isoformat()}\n'
+        f'Interval : {time_interval}s\n'
+        f'Density  : {packet_density}\n'
+        f'Packets  : {packet_count}')
 
     generated_timestamps = []
     while len(generated_timestamps) < packet_count:

@@ -38,11 +38,12 @@ def cli(verbose_logging):
               help='Show graph of sample after generation completes')
 @click.option('--seed', type=int, default=None,
               help='Seed value used in random generator')
-def generate_sample(from_datetime, to_datetime,
-                    density, interval_gen_range,
+def generate_sample(from_datetime, to_datetime, density, interval_gen_range,
                     plot, seed):
     '''Generate sample packages to use it in visualization'''
+
     generator.batch_interval_generator_range = interval_gen_range
+
     sample = generator.generate_sample(
         from_timestamp=datetime.timestamp(from_datetime),
         to_timestamp=datetime.timestamp(to_datetime),
@@ -50,6 +51,7 @@ def generate_sample(from_datetime, to_datetime,
         seed=seed)
 
     click.secho(json.dumps(sample['packets']))
+
     if plot:
         plotter.plot_sample_packets(sample['packets'])
 

@@ -1,9 +1,11 @@
 import click
 import json
-import elastic
 import generator
 import plotter
+import elastic
+import kibana
 import simple_logger as logger
+import os
 from datetime import datetime
 
 
@@ -126,6 +128,58 @@ def es_list(es_ctx):
     indices = elastic.list_indices(es_ctx.hostname, es_ctx.port)
     for index in indices:
         click.echo(index)
+
+##
+# Kibana setup
+##
+
+
+class KibanaContext:
+    def __init__(self, hostname, port):
+        self.hostname = hostname
+        self.port = port
+
+
+pass_kibana_context = click.make_pass_decorator(KibanaContext)
+
+
+@cli.group('kibana')
+@click.option('-h', '--host', '--hostname', 'hostname',
+              default='localhost',
+              help='Kibana hostname')
+@click.option('-p', '--port',
+              default=5601,
+              help='Kibana port')
+@click.pass_context
+def kibana_group(ctx, hostname, port):
+    '''Kibana commands'''
+    logger.log(f'Using Kibana instance at {hostname}:{port}')
+    kibana.verify_connection(hostname, port)
+    ctx.obj = KibanaContext(hostname, port)
+
+
+@kibana_group.command('setup')
+@click.option('-i', '--index', 'index_name',
+              type=str, default='metanet',
+              help='ES index name')
+@click.option('--force', 'force_setup',
+              is_flag=True,
+              help='Overwite existing dashboards if present')
+@click.option('-r', '--resources', 'resource_file',
+              type=click.File('r'),
+              help='ndjson file with kibana exported dashboards',
+              default=os.path.abspath(os.path.join(
+                  os.path.abspath(__file__),
+                  '../resources/kibana/kibana.ndjson')))
+@pass_kibana_context
+def kibana_setup(kibana_ctx, index_name, resource_file, force_setup):
+    '''Initialize Kibana dashboards'''
+    kibana.dashboard_setup(
+        host=kibana_ctx.hostname,
+        port=kibana_ctx.port,
+        resource_file=resource_file,
+        overwrite=force_setup
+    )
 
 
 ##

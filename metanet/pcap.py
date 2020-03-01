@@ -43,11 +43,13 @@ def __extract_packets(pcap_file_path,
 
     def convert_packet(packet):
         return {
-            'timestamp': datetime.fromtimestamp(float(packet['_source']['layers']['frame.time_epoch'][0])),
+            'timestamp': datetime.fromtimestamp(
+                float(packet['_source']['layers']['frame.time_epoch'][0])),
             'tcp_stream': int(packet['_source']['layers']['tcp.stream'][0]),
             'src': {
                 'ip': packet['_source']['layers']['ip.src'][0],
-                'hostname': str.lower(packet['_source']['layers']['ip.src_host'][0]),
+                'hostname': str.lower(
+                    packet['_source']['layers']['ip.src_host'][0]),
                 'port': int(packet['_source']['layers']['tcp.srcport'][0]),
                 'domain': None,
                 'subdomain': None,
@@ -55,7 +57,8 @@ def __extract_packets(pcap_file_path,
             },
             'dst': {
                 'ip': packet['_source']['layers']['ip.dst'][0],
-                'hostname': str.lower(packet['_source']['layers']['ip.dst_host'][0]),
+                'hostname': str.lower(
+                    packet['_source']['layers']['ip.dst_host'][0]),
                 'port': int(packet['_source']['layers']['tcp.dstport'][0]),
                 'domain': None,
                 'subdomain': None,
@@ -98,14 +101,14 @@ def analize_packets(pcap_file_path):
                     f'TLD lookup failed: [{field}] {lookup_hostname}')
 
         def fill_resource_type():
-            is_asset = any(
-                asset_host in packet['dst']['hostname'] for asset_host in asset_hosts)
+            is_asset = any(asset_host in packet['dst']['hostname']
+                           for asset_host in asset_hosts)
             if is_asset:
                 packet['metadata']['resource_type'] = 'asset'
                 return
 
-            is_ad = any(
-                ads_host in packet['dst']['hostname'] for ads_host in ads_hosts)
+            is_ad = any(ads_host in packet['dst']['hostname']
+                        for ads_host in ads_hosts)
             if is_ad:
                 packet['metadata']['resource_type'] = 'ads'
                 return

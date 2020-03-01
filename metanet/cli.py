@@ -210,12 +210,27 @@ def pcap_group(ctx, pcap_path):
 @click.option('--pretty', is_flag=True)
 @pass_pcap_context
 def pcap_scan(pcap_ctx, pretty):
-    from pprint import pprint
-    logger.log_debug(f"Scan {os.path.basename(pcap_ctx.file_path)} packages")
-
     packets = pcap.analize_packets(pcap_ctx.file_path)
     click.echo(json.dumps(packets, default=str, indent=2 if pretty else None))
 
+
+@pcap_group.command('analyze')
+@click.option('-h', '--host', '--hostname', 'hostname',
+              default='localhost',
+              help='ES hostname')
+@click.option('-p', '--port',
+              default=9200,
+              help='ES port')
+@pass_pcap_context
+def pcap_analize(pcap_ctx, hostname, port):
+    elastic.verify_connection(hostname, port)
+    packets = pcap.analize_packets(pcap_ctx.file_path)
+
+    client = elastic.MetanetElastic(
+        hostname=hostname,
+        port=port)
+
+    client.index_packets(packets)
 ##
 # Debug
 ##

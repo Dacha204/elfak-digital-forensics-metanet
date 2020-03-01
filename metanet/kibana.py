@@ -30,7 +30,8 @@ def dashboard_setup(host, port, resource_file, overwrite=False):
     logger.log_info('Importing kibana objects')
 
     import_response = requests.post(
-        url=f'http://{host}:{port}/api/saved_objects/_import?overwrite={overwrite}',
+        url=f'http://{host}:{port}/api/saved_objects/_import?'
+            f'overwrite={overwrite}',
         headers=headers,
         files=files
     )
@@ -41,5 +42,5 @@ def dashboard_setup(host, port, resource_file, overwrite=False):
                          f"Use --force to overwrite existing objects")
         return
 
-    logger.log_info(
-        f"Kibana setup completed: successCount={import_status['successCount']}")
+    logger.log_info(f"Kibana setup completed: "
+                    f"successCount={import_status['successCount']}")

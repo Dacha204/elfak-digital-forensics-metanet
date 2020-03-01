@@ -39,23 +39,30 @@ class MetanetElastic:
                             "second": {"type": "integer"}
                         }
                     },
+                    "tcp_stream": {"type": "integer"},
+                    "source": {
+                        "properties": {
+                            "ip": {"type": "ip"},
+                            "port": {"type": "integer"},
+                            "hostname": {"type": "text"},
+                            "domain": {"type": "keyword"},
+                            "subdomain": {"type": "keyword"},
+                            "fld": {"type": "keyword"}
+                        }
+                    },
                     "destination": {
                         "properties": {
-                            "ip": {
-                                "properties": {
-                                    "ip_address": {"type": "ip"},
-                                    "port": {"type": "integer"}
-                                }
-                            },
-                            "dns": {
-                                "properties": {
-                                    "hostname": {"type": "text"},
-                                    "domain": {"type": "keyword"},
-                                    "subdomain": {"type": "keyword"},
-                                    "fld": {"type": "keyword"}
-                                }
-                            },
-                            "resource_type": {"type": "keyword"},
+                            "ip": {"type": "ip"},
+                            "port": {"type": "integer"},
+                            "hostname": {"type": "text"},
+                            "domain": {"type": "keyword"},
+                            "subdomain": {"type": "keyword"},
+                            "fld": {"type": "keyword"}
+                        },
+                    },
+                    "resource": {
+                        "properties": {
+                            "type": {"type": "keyword"},
                             "category": {"type": "keyword"}
                         }
                     }

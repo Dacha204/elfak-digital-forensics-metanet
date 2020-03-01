@@ -1,3 +1,4 @@
+import os
 import click
 import json
 import generator
@@ -5,7 +6,7 @@ import plotter
 import elastic
 import kibana
 import simple_logger as logger
-import os
+import pcap
 from datetime import datetime
 
 
@@ -80,7 +81,7 @@ pass_es_context = click.make_pass_decorator(ElasticSearchContext)
 @click.pass_context
 def es_group(ctx, hostname, port):
     '''ElasticSearch commands'''
-    logger.log(f'Using ES instance at {hostname}:{port}')
+    logger.log_debug(f'Using ES instance at {hostname}:{port}')
     elastic.verify_connection(hostname, port)
     ctx.obj = ElasticSearchContext(hostname, port)
 
@@ -153,7 +154,7 @@ pass_kibana_context = click.make_pass_decorator(KibanaContext)
 @click.pass_context
 def kibana_group(ctx, hostname, port):
     '''Kibana commands'''
-    logger.log(f'Using Kibana instance at {hostname}:{port}')
+    logger.log_debug(f'Using Kibana instance at {hostname}:{port}')
     kibana.verify_connection(hostname, port)
     ctx.obj = KibanaContext(hostname, port)
 
@@ -181,6 +182,39 @@ def kibana_setup(kibana_ctx, index_name, resource_file, force_setup):
         overwrite=force_setup
     )
 
+
+##
+# PCAP Analyizer
+##
+class PcapContext:
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+
+pass_pcap_context = click.make_pass_decorator(PcapContext)
+
+
+@cli.group('pcap')
+@click.option('-f', '--file', 'pcap_path',
+              type=click.Path(exists=True),
+              required=True,
+              help='PCAP file path')
+@click.pass_context
+def pcap_group(ctx, pcap_path):
+    '''PCAP commands'''
+    logger.log_debug(f'Using PCAP file "{pcap_path}"')
+    ctx.obj = PcapContext(pcap_path)
+
+
+@pcap_group.command('scan')
+@click.option('--pretty', is_flag=True)
+@pass_pcap_context
+def pcap_scan(pcap_ctx, pretty):
+    from pprint import pprint
+    logger.log_debug(f"Scan {os.path.basename(pcap_ctx.file_path)} packages")
+
+    packets = pcap.analize_packets(pcap_ctx.file_path)
+    click.echo(json.dumps(packets, default=str, indent=2 if pretty else None))
 
 ##
 # Debug

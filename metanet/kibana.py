@@ -37,7 +37,8 @@ def dashboard_setup(host, port, resource_file, overwrite=False):
 
     import_status = import_response.json()
     if not import_status['success']:
-        logger.log_error(f"Failed to setup kibana: {import_status['errors']}")
+        logger.log_error(f"Failed to setup kibana: {import_status['errors']}. "
+                         f"Use --force to overwrite existing objects")
         return
 
     logger.log_info(

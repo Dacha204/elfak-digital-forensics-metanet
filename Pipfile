@@ -14,6 +14,7 @@ numpy = "*"
 matplotlib = "*"
 elasticsearch = "*"
 requests = "*"
+tld = "*"
 
 [requires]
 python_version = "3.8"

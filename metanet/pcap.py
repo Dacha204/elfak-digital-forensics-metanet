@@ -76,6 +76,9 @@ def __extract_packets(pcap_file_path,
 
 
 def analize_packets(pcap_file_path):
+    logger.log_debug("Analize packets")
+
+    logger.log_debug("Loading hosts lists")
     asset_hosts = [line.strip() for line in open(__assets_hosts_path, 'r')]
     ads_hosts = [line.strip() for line in open(__ads_hosts_path, 'r')]
     ipv4_regex = r'^(\d{1,3}\.){3}\d{1,3}'
@@ -123,4 +126,5 @@ def analize_packets(pcap_file_path):
     for packet in packets:
         analize_packet(packet)
 
+    logger.log_debug("Analize packets completed")
     return packets

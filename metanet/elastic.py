@@ -19,7 +19,7 @@ def verify_connection(hostname, port):
         logger.log_debug(f'Instance available')
     except Exception as ex:
         logger.log_error(ex)
-        raise
+        raise ConnectionError("Failed to connect to ElasticSearch") from ex
 
 
 def list_indices(hostname='localhost', port=9200):
@@ -31,15 +31,23 @@ def list_indices(hostname='localhost', port=9200):
 
 
 class MetanetElastic:
-    def __init__(self, hostname='localhost', port=9200, index_name='metanet'):
+    def __init__(self, hostname='localhost', port=9200):
         self.hostname = hostname
         self.port = port
-        self.index_name = index_name
+        self.index_name = 'metanet'
         self.__es_client = Elasticsearch(
             hosts=[{'host': hostname, 'port': port}])
 
-    def setup(self, force_create=False):
-        logger.log_debug(f"ES index setup")
+    def is_configured(self):
+        if self.__es_client.indices.exists(self.index_name):
+            logger.log_debug(f"Existing index '{self.index_name}' found")
+            return True
+        else:
+            logger.log_debug(f"No existing index '{self.index_name}' found")
+            return False
+
+    def configure(self, force_create=False):
+        logger.log_debug(f"Create ES index")
 
         index_mapping = {
             "settings": {
@@ -93,32 +101,37 @@ class MetanetElastic:
         }
 
         if self.__es_client.indices.exists(self.index_name):
-            logger.log_info(f"Found existing index '{self.index_name}'")
+            logger.log_debug(f"Found existing index '{self.index_name}'")
             if not force_create:
                 logger.log_error("Setup aborted. Use --force to overwrite")
                 return
-            logger.log_warning(f"Removing existing index '{self.index_name}'")
+            logger.log_debug(f"Removing existing index '{self.index_name}'")
             self.__es_client.indices.delete(self.index_name)
 
         self.__es_client.indices.create(self.index_name,
                                         json.dumps(index_mapping))
 
-        logger.log_info(f"Index '{self.index_name}' created: "
-                        f"{json.dumps(index_mapping)}")
+        logger.log_debug(f"Index '{self.index_name}' created: "
+                         f"{json.dumps(index_mapping)}")
 
     def cleanup(self):
-        logger.log_info("ES cleanup...")
-
+        logger.log_debug(f"ES cleanup'")
         if self.__es_client.indices.exists(self.index_name):
-            logger.log_info(f"Removing index '{self.index_name}'")
+            logger.log_debug(f"Removing index '{self.index_name}'")
             self.__es_client.indices.delete(self.index_name)
         else:
-            logger.log_warning(f"Index '{self.index_name}' not found")
+            logger.log_debug(f"Index '{self.index_name}' not found")
 
-        logger.log_info("Cleanup completed")
+        logger.log_debug("ES cleanup completed")
+
+    def truncate(self):
+        logger.log_debug(f"Truncate index data")
+        self.cleanup()
+        self.configure()
+        logger.log_debug("Index truncated")
 
     def index_packets(self, packets):
-        logger.log_info(f'Indexing {len(packets)} packets in ES')
+        logger.log_debug(f'Indexing {len(packets)} packets in ES')
 
         def convert_to_document(packet):
             return {
@@ -159,4 +172,4 @@ class MetanetElastic:
                 self.__es_client.index(index=self.index_name,
                                        body=convert_to_document(packet))
 
-        logger.log_info("Indexing complete")
+        logger.log_debug("Indexing completed")

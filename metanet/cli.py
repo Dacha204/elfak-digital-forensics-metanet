@@ -18,10 +18,184 @@ def cli(verbose_logging):
     '''Metanet Analyzer'''
     logger.verbose = verbose_logging
 
+##
+# Setup
+##
+
+
+class SetupContext:
+    def __init__(self, es_host, es_port, kibana_host, kibana_port):
+        self.es_host = es_host
+        self.es_port = es_port
+        self.kibana_host = kibana_host
+        self.kibana_port = kibana_port
+
+
+pass_setup_context = click.make_pass_decorator(SetupContext)
+
+
+@cli.group('setup')
+@click.option('--es-host', 'es_host',
+              default='localhost',
+              help='Elasticsearch host')
+@click.option('--es-port', 'es_port',
+              default=9200,
+              help='Elasticsearch port')
+@click.option('--kibana-host', 'kibana_host',
+              default='localhost',
+              help='Kibana host')
+@click.option('--kibana-port', 'kibana_port',
+              default=5601,
+              help='Kibana port')
+@click.pass_context
+def setup_group(ctx, es_host, es_port, kibana_host, kibana_port):
+    '''Setup commands'''
+    logger.log_info("Verify connection...")
+    try:
+        elastic.verify_connection(es_host, es_port)
+        kibana.verify_connection(kibana_host, kibana_port)
+    except ConnectionError as ex:
+        raise click.ClickException(ex) from ex
+    logger.log_info("Elasticsearch and Kibana available")
+
+    ctx.obj = SetupContext(es_host, es_port, kibana_host, kibana_port)
+
+
+@setup_group.command('init')
+@click.option('--kibana-templates', 'kibana_templates',
+              type=click.File('r'),
+              help='ndjson file with kibana exported dashboards',
+              default=os.path.abspath(os.path.join(
+                  os.path.abspath(__file__),
+                  '../resources/kibana/kibana.ndjson')))
+@click.option('--force', 'force_setup',
+              is_flag=True,
+              help='Overwite existing configuration if present')
+@pass_setup_context
+def setup_init(setup_ctx, kibana_templates, force_setup):
+    '''Configure Elasticsearch and Kibana for MetaNet usage'''
+    logger.log_info("Setup Elasticsearch and Kibana")
+    es = elastic.MetanetElastic(setup_ctx.es_host, setup_ctx.es_port)
+
+    logger.log_info("Check for existing configuration...")
+    es_configured = es.is_configured()
+    kibana_configured = kibana.is_configured(setup_ctx.kibana_host,
+                                             setup_ctx.kibana_port)
+    if es_configured or kibana_configured:
+        if not force_setup:
+            logger.log_error("Existing configuration detected. "
+                             "Use --force flag to overwrite")
+            return
+        logger.log_info("Existing configuration detected, overwriting... ")
+    else:
+        logger.log_info("No existing configuration detected")
+
+    kibana.configure(setup_ctx.kibana_host, setup_ctx.kibana_port,
+                     kibana_templates, force_setup)
+    es.configure(force_setup)
+
+    logger.log_info("Setup completed")
+
+
+@setup_group.command('cleanup')
+@pass_setup_context
+def setup_cleanup(setup_ctx):
+    '''Remove Elasticsearch and Kibana configuration'''
+    logger.log_info("Cleanup configuration")
+
+    logger.log_info("Removing Elasticsearch configuration...")
+    es = elastic.MetanetElastic(setup_ctx.es_host, setup_ctx.es_port)
+    es.cleanup()
+
+    logger.log_info("Removing Kibana configuration...")
+    kibana.cleanup(setup_ctx.kibana_host, setup_ctx.kibana_port)
+
+    logger.log_info("Cleanup configuration completed")
+
+
+##
+# PCAP Analyizer
+##
+
+
+class PcapContext:
+    def __init__(self, file_path):
+        self.file_path = file_path
+
+
+pass_pcap_context = click.make_pass_decorator(PcapContext)
+
+
+@cli.group('pcap')
+@click.option('-f', '--file', 'pcap_path',
+              type=click.Path(exists=True),
+              required=True,
+              help='PCAP file path')
+@click.pass_context
+def pcap_group(ctx, pcap_path):
+    '''PCAP commands'''
+    logger.log_debug(f'Using PCAP file "{pcap_path}"')
+    ctx.obj = PcapContext(pcap_path)
+
+
+@pcap_group.command('scan')
+@click.option('--pretty', is_flag=True)
+@pass_pcap_context
+def pcap_scan(pcap_ctx, pretty):
+    packets = pcap.analize_packets(pcap_ctx.file_path)
+
+    result = {
+        'packets': packets,
+        'count': len(packets)
+    }
+
+    click.echo(json.dumps(result, default=str, indent=2 if pretty else None))
+
+
+@pcap_group.command('analyze')
+@click.option('--es-host', 'es_host',
+              default='localhost',
+              help='Elasticsearch host')
+@click.option('--es-port', 'es_port',
+              default=9200,
+              help='Elasticsearch port')
+@pass_pcap_context
+def pcap_analize(pcap_ctx, es_host, es_port):
+    '''Analyze packets in PCAP file'''
+
+    logger.log_info("Process packets")
+    logger.log_info("Verify connection...")
+    try:
+        elastic.verify_connection(es_host, es_port)
+    except ConnectionError as ex:
+        raise click.ClickException(ex) from ex
+    logger.log_info("Elasticsearch available")
+
+    es = elastic.MetanetElastic(
+        hostname=es_host,
+        port=es_port)
+
+    logger.log_info("Verify Elasticsearch configuration...")
+    if not es.is_configured():
+        logger.log_error("Elasticsearch is not configured. "
+                         "Use 'setup init' to configure")
+        return
+    logger.log_info("Elasticsearch configured")
+
+    logger.log_info("Processing packets...")
+    packets = pcap.analize_packets(pcap_ctx.file_path)
+
+    logger.log_info("Indexing packets...")
+    es.truncate()
+    es.index_packets(packets)
+
+    logger.log_info("Process packets completed")
 
 ##
 # Generator
 ##
+
+
 @cli.command()
 @click.option('--from', 'from_datetime',
               type=click.DateTime(), required=True,
@@ -57,187 +231,6 @@ def generate_sample(from_datetime, to_datetime, density, interval_gen_range,
 
     if plot:
         plotter.plot_sample_packets(sample['packets'])
-
-
-##
-# ElasticSearch
-##
-class ElasticSearchContext:
-    def __init__(self, hostname, port):
-        self.hostname = hostname
-        self.port = port
-
-
-pass_es_context = click.make_pass_decorator(ElasticSearchContext)
-
-
-@cli.group('es')
-@click.option('-h', '--host', '--hostname', 'hostname',
-              default='localhost',
-              help='ES hostname')
-@click.option('-p', '--port',
-              default=9200,
-              help='ES port')
-@click.pass_context
-def es_group(ctx, hostname, port):
-    '''ElasticSearch commands'''
-    logger.log_debug(f'Using ES instance at {hostname}:{port}')
-    elastic.verify_connection(hostname, port)
-    ctx.obj = ElasticSearchContext(hostname, port)
-
-
-@es_group.command('setup')
-@click.option('-i', '--index', 'index_name',
-              type=str, default='metanet',
-              help='ES index name')
-@click.option('--force', 'force_setup',
-              is_flag=True,
-              help='Overwite existing index if present')
-@pass_es_context
-def es_setup(es_ctx, index_name, force_setup):
-    '''Initialize ES index'''
-    client = elastic.MetanetElastic(
-        hostname=es_ctx.hostname,
-        port=es_ctx.port,
-        index_name=index_name)
-
-    client.setup(force_create=force_setup)
-
-
-@es_group.command('cleanup')
-@click.option('-i', '--index', 'index_name',
-              type=str, default='metanet',
-              help='ES index name')
-@pass_es_context
-def es_cleanup(es_ctx, index_name):
-    '''Remove ES index and data'''
-    client = elastic.MetanetElastic(
-        hostname=es_ctx.hostname,
-        port=es_ctx.port,
-        index_name=index_name)
-
-    click.confirm(f"Index '{index_name}' will be deleted. Continue?",
-                  abort=True)
-
-    client.cleanup()
-
-
-@es_group.command('list-indices')
-@pass_es_context
-def es_list(es_ctx):
-    '''Debug: List all indices in ES'''
-    indices = elastic.list_indices(es_ctx.hostname, es_ctx.port)
-    for index in indices:
-        click.echo(index)
-
-##
-# Kibana setup
-##
-
-
-class KibanaContext:
-    def __init__(self, hostname, port):
-        self.hostname = hostname
-        self.port = port
-
-
-pass_kibana_context = click.make_pass_decorator(KibanaContext)
-
-
-@cli.group('kibana')
-@click.option('-h', '--host', '--hostname', 'hostname',
-              default='localhost',
-              help='Kibana hostname')
-@click.option('-p', '--port',
-              default=5601,
-              help='Kibana port')
-@click.pass_context
-def kibana_group(ctx, hostname, port):
-    '''Kibana commands'''
-    logger.log_debug(f'Using Kibana instance at {hostname}:{port}')
-    kibana.verify_connection(hostname, port)
-    ctx.obj = KibanaContext(hostname, port)
-
-
-@kibana_group.command('setup')
-@click.option('-i', '--index', 'index_name',
-              type=str, default='metanet',
-              help='ES index name')
-@click.option('--force', 'force_setup',
-              is_flag=True,
-              help='Overwite existing dashboards if present')
-@click.option('-r', '--resources', 'resource_file',
-              type=click.File('r'),
-              help='ndjson file with kibana exported dashboards',
-              default=os.path.abspath(os.path.join(
-                  os.path.abspath(__file__),
-                  '../resources/kibana/kibana.ndjson')))
-@pass_kibana_context
-def kibana_setup(kibana_ctx, index_name, resource_file, force_setup):
-    '''Initialize Kibana dashboards'''
-    kibana.dashboard_setup(
-        host=kibana_ctx.hostname,
-        port=kibana_ctx.port,
-        resource_file=resource_file,
-        overwrite=force_setup
-    )
-
-
-##
-# PCAP Analyizer
-##
-class PcapContext:
-    def __init__(self, file_path):
-        self.file_path = file_path
-
-
-pass_pcap_context = click.make_pass_decorator(PcapContext)
-
-
-@cli.group('pcap')
-@click.option('-f', '--file', 'pcap_path',
-              type=click.Path(exists=True),
-              required=True,
-              help='PCAP file path')
-@click.pass_context
-def pcap_group(ctx, pcap_path):
-    '''PCAP commands'''
-    logger.log_debug(f'Using PCAP file "{pcap_path}"')
-    ctx.obj = PcapContext(pcap_path)
-
-
-@pcap_group.command('scan')
-@click.option('--pretty', is_flag=True)
-@pass_pcap_context
-def pcap_scan(pcap_ctx, pretty):
-    packets = pcap.analize_packets(pcap_ctx.file_path)
-    click.echo(json.dumps(packets, default=str, indent=2 if pretty else None))
-
-
-@pcap_group.command('analyze')
-@click.option('-h', '--host', '--hostname', 'hostname',
-              default='localhost',
-              help='ES hostname')
-@click.option('-p', '--port',
-              default=9200,
-              help='ES port')
-@pass_pcap_context
-def pcap_analize(pcap_ctx, hostname, port):
-    elastic.verify_connection(hostname, port)
-    packets = pcap.analize_packets(pcap_ctx.file_path)
-
-    client = elastic.MetanetElastic(
-        hostname=hostname,
-        port=port)
-
-    client.index_packets(packets)
-##
-# Debug
-##
-@cli.command()
-def debug():
-    '''Debug command'''
-    pass
 
 
 if __name__ == "__main__":

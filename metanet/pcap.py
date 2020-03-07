@@ -75,8 +75,13 @@ def __extract_packets(pcap_file_path,
     return packets
 
 
-def analize_packets(pcap_file_path):
-    logger.log_debug("Analize packets")
+def analize_packets_from_file(pcap_file_path):
+    packets = __extract_packets(pcap_file_path)
+    return analize_packets(packets)
+
+
+def analize_packets(packets):
+    logger.log_debug("Analize packets from file")
 
     logger.log_debug("Loading hosts lists")
     asset_hosts = [line.strip() for line in open(__assets_hosts_path, 'r')]
@@ -122,9 +127,9 @@ def analize_packets(pcap_file_path):
         fill_tld_data('dst')
         fill_resource_type()
 
-    packets = __extract_packets(pcap_file_path)
-    for packet in packets:
-        analize_packet(packet)
+    with click.progressbar(packets) as packets_bar:
+        for packet in packets_bar:
+            analize_packet(packet)
 
     logger.log_debug("Analize packets completed")
     return packets

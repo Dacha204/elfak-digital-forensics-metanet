@@ -113,54 +113,24 @@ def setup_cleanup(setup_ctx):
     logger.log_info("Cleanup configuration completed")
 
 
-##
-# PCAP Analyizer
-##
+@cli.group('analyze')
+def analyze_group():
+    '''Analyze packets'''
+    pass
 
 
-class PcapContext:
-    def __init__(self, file_path):
-        self.file_path = file_path
-
-
-pass_pcap_context = click.make_pass_decorator(PcapContext)
-
-
-@cli.group('pcap')
+@analyze_group.command('pcap')
 @click.option('-f', '--file', 'pcap_path',
               type=click.Path(exists=True),
               required=True,
               help='PCAP file path')
-@click.pass_context
-def pcap_group(ctx, pcap_path):
-    '''PCAP commands'''
-    logger.log_debug(f'Using PCAP file "{pcap_path}"')
-    ctx.obj = PcapContext(pcap_path)
-
-
-@pcap_group.command('scan')
-@click.option('--pretty', is_flag=True)
-@pass_pcap_context
-def pcap_scan(pcap_ctx, pretty):
-    packets = pcap.analize_packets(pcap_ctx.file_path)
-
-    result = {
-        'packets': packets,
-        'count': len(packets)
-    }
-
-    click.echo(json.dumps(result, default=str, indent=2 if pretty else None))
-
-
-@pcap_group.command('analyze')
 @click.option('--es-host', 'es_host',
               default='localhost',
               help='Elasticsearch host')
 @click.option('--es-port', 'es_port',
               default=9200,
               help='Elasticsearch port')
-@pass_pcap_context
-def pcap_analize(pcap_ctx, es_host, es_port):
+def analyze_pcap(pcap_path, es_host, es_port):
     '''Analyze packets in PCAP file'''
 
     logger.log_info("Process packets")
@@ -183,7 +153,7 @@ def pcap_analize(pcap_ctx, es_host, es_port):
     logger.log_info("Elasticsearch configured")
 
     logger.log_info("Processing packets...")
-    packets = pcap.analize_packets(pcap_ctx.file_path)
+    packets = pcap.analize_packets_from_file(pcap_path)
 
     logger.log_info("Indexing packets...")
     es.truncate()
@@ -191,12 +161,8 @@ def pcap_analize(pcap_ctx, es_host, es_port):
 
     logger.log_info("Process packets completed")
 
-##
-# Generator
-##
 
-
-@cli.command()
+@analyze_group.command('sample')
 @click.option('--from', 'from_datetime',
               type=click.DateTime(), required=True,
               help='Starting datetime for sample')
@@ -215,10 +181,36 @@ def pcap_analize(pcap_ctx, es_host, es_port):
               help='Show graph of sample after generation completes')
 @click.option('--seed', type=int, default=None,
               help='Seed value used in random generator')
+@click.option('--es-host', 'es_host',
+              default='localhost',
+              help='Elasticsearch host')
+@click.option('--es-port', 'es_port',
+              default=9200,
+              help='Elasticsearch port')
 def generate_sample(from_datetime, to_datetime, density, interval_gen_range,
-                    plot, seed):
-    '''Generate sample packages to use it in visualization'''
+                    plot, seed, es_host, es_port):
+    '''Generate sample packages and analyze'''
+    logger.log_info('Analize generated sample')
 
+    logger.log_info("Verify connection...")
+    try:
+        elastic.verify_connection(es_host, es_port)
+    except ConnectionError as ex:
+        raise click.ClickException(ex) from ex
+    logger.log_info("Elasticsearch available")
+
+    es = elastic.MetanetElastic(
+        hostname=es_host,
+        port=es_port)
+
+    logger.log_info("Verify Elasticsearch configuration...")
+    if not es.is_configured():
+        logger.log_error("Elasticsearch is not configured. "
+                         "Use 'setup init' to configure")
+        return
+    logger.log_info("Elasticsearch configured")
+
+    logger.log_info("Generating packets...")
     generator.batch_interval_generator_range = interval_gen_range
 
     sample = generator.generate_sample(
@@ -226,11 +218,19 @@ def generate_sample(from_datetime, to_datetime, density, interval_gen_range,
         to_timestamp=datetime.timestamp(to_datetime),
         desired_density=density,
         seed=seed)
+    logger.log_info(f"Generated {len(sample['packets'])} packets")
 
-    click.secho(json.dumps(sample['packets']))
+    logger.log_info("Analyzing packets...")
+    pcap.analize_packets(sample['packets'])
+    
+    logger.log_info("Indexing packets...")
+    es.truncate()
+    es.index_packets(sample['packets'])
 
     if plot:
         plotter.plot_sample_packets(sample['packets'])
+
+    logger.log_info("Process packets completed")
 
 
 if __name__ == "__main__":

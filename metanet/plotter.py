@@ -10,7 +10,7 @@ def plot_sample_packets(packets, on_same_axis=False):
 
     groups = dict()
     for packet in packets:
-        groups.setdefault(packet['domain'], []).append(packet)
+        groups.setdefault(packet['dst']['hostname'], []).append(packet)
 
     index = 0
     for group in groups.keys():
@@ -18,7 +18,7 @@ def plot_sample_packets(packets, on_same_axis=False):
         if not group_items:
             continue
 
-        x_axis = [packet['datetime']['timestamp'] for packet in group_items]
+        x_axis = [packet['timestamp'].timestamp() for packet in group_items]
         y_axis = [index] * len(group_items)
 
         plt.plot(x_axis, y_axis, f"{random.choice(colors)}.")

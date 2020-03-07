@@ -6,23 +6,23 @@ from datetime import datetime
 # Settings
 batch_interval_generator_range = (60, 600)
 domains = [
-    'google.com',
-    'youtube.com',
-    'facebook.com',
-    'wikipedia.com',
-    'yahoo.com',
-    'reddit.com',
-    'netflix.com',
-    'vk.com',
-    'instagram.com',
-    'linkedin.com',
-    'microsoft.com',
-    'twitter.com',
-    'twitch.tv',
-    'stackoverflow.com',
-    'imdb.com',
-    'github.com',
-    'accuweather.com',
+    ('google.com', '172.217.18.78'),
+    ('youtube.com', '172.217.19.110'),
+    ('facebook.com', '31.13.84.36'),
+    ('wikipedia.com', '91.198.174.192'),
+    ('yahoo.com', '98.138.219.232'),
+    ('reddit.com', '151.101.129.140'),
+    ('netflix.com', '54.76.60.39'),
+    ('vk.com', '87.240.190.67'),
+    ('instagram.com', '3.224.210.52'),
+    ('linkedin.com', '108.174.10.10'),
+    ('microsoft.com', '40.76.4.15'),
+    ('twitter.com', '104.244.42.193'),
+    ('twitch.tv', '151.101.66.167'),
+    ('stackoverflow.com', '151.101.1.69'),
+    ('imdb.com', '52.94.228.167'),
+    ('github.com', '140.82.113.4'),
+    ('accuweather.com', '184.24.150.99')
 ]
 
 
@@ -30,18 +30,30 @@ def __generate_packet(timestamp: int):
     '''Generate packet for random domain for specified timestamp'''
 
     date_time = datetime.fromtimestamp(timestamp)
+    random_domain = domains[np.random.randint(0, len(domains))]
 
     return {
-        'datetime': {
-            'timestamp': timestamp,
-            'year': date_time.year,
-            'month': date_time.month,
-            'day': date_time.day,
-            'hour': date_time.hour,
-            'minute': date_time.minute,
-            'second': date_time.second
+        'timestamp': datetime.fromtimestamp(timestamp),
+        'tcp_stream': -1,
+        'src': {
+            'ip': '127.0.0.1',
+            'hostname': '127.0.0.1',
+            'port': 13370,
+            'domain': None,
+            'subdomain': None,
+            'fld': None
         },
-        'domain': domains[np.random.randint(0, len(domains))]
+        'dst': {
+            'ip': random_domain[1],
+            'hostname': random_domain[0],
+            'port': 443,
+            'domain': None,
+            'subdomain': None,
+            'fld': None
+        },
+        'metadata': {
+            'resource_type': None
+        }
     }
 
 
@@ -117,7 +129,7 @@ def generate_sample(from_timestamp: int,
         batch = __generate_batch(from_timestamp, to_timestamp)
         sample.extend(batch['packets'])
 
-    sample.sort(key=lambda x: x['datetime']['timestamp'])
+    sample.sort(key=lambda x: x['timestamp'])
 
     return {
         'from_timestamp': from_timestamp,

@@ -35,7 +35,7 @@ Za razliku od drugih grana forenizke, kod mrežne forenzike podaci su veoma dina
 
 **Metanet** alat služi da analizira i vizualizuje unapred prikupljene mrežne pakete i omogući uočavanje šablona u komunikaciji između određenog računara i ostatka mreže uključujući interneta.
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/diagram1.png)
+![](./Diagrams/diagram1.png)
 
 Slika 1
 
@@ -49,23 +49,23 @@ Metanet analizira mrežne pakete koji su prikupljeni na čvoru mreže između ko
 
 Na slici je data šema jedanog primer primera prikupljanja podataka, gde se koristi Wireshark alat za prikupljanje mrežnih paketa i njihovo skladištenje u `.pcap` fajl formatu koje se kasnije koristi za analizu u `metanet` alatu. 
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/diagram3.png)
+![](./Diagrams/diagram3.png)
 
 Metanet se ne bavi problemom prikupljanja ovih podataka, već analizira isključivo već sačuvane pakete u `.pcap` fajlu.
 
 Komunikaciju sa diagrama 1, koja pokazuje interakciju korisnika sa web servisima, se preciznije moze prikazati na diagramu 3:
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/diagram2.png)
+![](./Diagrams/diagram2.png)
 
 Svaki od servisa je zapravo udaljeni računar - server na mreži. Komunikacija se obavlje putem korišćenjem određenog aplikacionog protokola TCP/IP mrežnog stack-a. 
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/tcp_ip_layers.gif)
+![](./Diagrams/tcp_ip_layers.gif)
 
 Analiza komunikacije na najvišem nivou je svakako najpogodnija, ali ujedno i najteža. Na ovom nivou se može dobiti najviše informacija o komunikaciji i sadrži veoma osetljive informacije. 
 
 Uzmimo za primer HTTP protokol i komunikaciju između korisnika i web servisa - recimo webshop servisa.
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/packet_diagram01.png)
+![](./Diagrams/packet_diagram01.png)
 
 - Korisnički pregledač na aplikativnom nivou generiše zahtev za učitavanje početne stranice webshopa:
 
@@ -104,7 +104,7 @@ Komunikacija sa mrežnog nivoa izgleda slično kao kod HTTPa, s tim što priliko
 
 
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/packet_diagram02.png)
+![](./Diagrams/packet_diagram02.png)
 
 - Korisnički pregledač na aplikativnom nivou generiše zahtev za učitavanje početne stranice webshopa:
 
@@ -209,7 +209,7 @@ Ukoliko se informacije o kompaniji, u čijem je vlasništvu IP adresa, sa njenim
 
 Tako na primer:
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/packet_diagram03.png)
+![](./Diagrams/packet_diagram03.png)
 
 |   |   |
 | ----------- | ---- |
@@ -229,7 +229,7 @@ Analiza paketa se vrši iz 2 faze:
 - Obrada `.pcap` fajla sa paketima, čiji je zadatak MetanetCLI alata
 - Indeksiranje i vizualizacija obrađenih podataka iz prethodne faze, koje se obavlja putem ElasticSearch i Kibana alata
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/diagram4.png)
+![](./Diagrams/diagram4.png)
 
 Prva faza analize podrazumeva najpre filtriranje mrežnih paketa. Pošto `.pcap` fajl može sadržati raznovrsne  tipove paketa, kao što su:
 
@@ -251,15 +251,15 @@ Nakon filtriranja paketa sledi korak u kome se vrši obrnuti DNS upit koji treba
 
 Problem na koji se nailazi prilikom obrnutog DNS upita je da se može desiti da za istu IP adresu može biti povezano više različitih domena. To je najčešći slučaj kod shared hosting okruženjima kada jedan isti Web server može da opslužuje više različitih Web sajtova sa različitim domenima. Preslikavanje ne mora biti jedan na jedan u svakom slučaju. Razlikovanje Web sajtova se obajvlja na aplikatinvom nivou. Konkretno, Web serveri uvode koncept virutalnih web servera koji svaki od njih opslužuje jedan web sajt i vezan za jedan domen. U HTTP/HTTPS protokolu se parametrom `Host` specifira odredište, najčešće domen web sajta, gde je deljeni web server u mogućnosti da na osnovu tog parametra jedinstveno odredi kom virtualnom serveru je određeni paket namenjen i koji web sajt treba da opsluži taj paket. 
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/diagram5.png)
+![](./Diagrams/diagram5.png)
 
 Pošto se u ovom slučaju analiza ne vrši na aplikativnom nivou, prost reverzibilni DNS upit može dati nedeterminisane rezultate. Stoga se mora primeniti tehnika kojom se pored HTTPS paketa u komunikaciji ujedno prate DNS paketi i to konkretno DNS upiti i odgovori na iste. Iz DNS odgovora se jasno vidi IP adresa, a iz DNS upita se vidi domen za koji je odgovor namenjen. Na osnovu ovih paketa se može na jedinstven način napraviti tabela mapiranja IP adresa i domena koji su relevatni u kontekstu analizirane komunikacije.
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/diagram5.png)
+![](./Diagrams/diagram5.png)
 
 Kao i kod celokupnog saobraćaja iz `.pcap` fajla i kod HTTP/HTTPS saobraćaja imamo situaciju da nije ceo saobraćaj relevantan za analizu. U prethodnom slučaju je odbačen sav saobraćaj koji nije vezan za HTTP/HTTPS komunikaciju - saobraćaj drugih protokola. Kod HTTP/HTTPS saobraćaja je ista situacija kad se otvara neki web sajt. Nisu svi resursi na tom sajtu konkretno vezani za ciljani sajt. Konkretno, svaka stranica može da sadrži sadržaj i resurse koji čije poreklo nije sa istog sajta kao što je na primer, resursi java-script biblioteka, slike, reklame itd.. Tako da kada korisnik otvori neki sajt, pored učitavanje sadržaja traženog sajta, dolazi do učitavanje i drugih resursa sa eksternih lokacija. Ti eksterni resursi mogu biti deljeni među različitim sajtovima. Tako na primer, više sajtova mogu da koriste usluge web reklama koje ce biti učitane sa istog eksternog servisa/domena ili da koriste istu zajedničku biblioteku koja će biti očitana sa servera druge kompanije koje pravi i održava tu biblioteku. 
 
-![](/home/dacha204/Personal/Projects/forenzika/elfak-digital-forensics-metanet/Diagrams/webpage-ads.jpeg)
+![](./Diagrams/webpage-ads.jpeg)
 
 Pošto se analiza ne vrši na aplikativnom nivou, već na nivou ispod, nije moguće precizno odrediti da li se korisnik povezuje na 2 različita portala ili povezuje na jedan portal koji očitava resurse sa drugog servisa. U analizi biće detektovano da se korisnik povezuje na 2 različita portala, stoga je potrebno da se ovi eksterno učitavani resursi raspoznaju.
 

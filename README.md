@@ -19,13 +19,13 @@ MateNet - network metadata analyzist & visualization
 
 ### Step 1: Start Elasticsearch and Kibana
 
-```
+```bash
 docker-compose up -d
 ```
 
 ### Step 2: Initialize Elasticsearch and Kibana
 
-```
+```bash
 python metanet setup init
 ```
 
@@ -33,19 +33,19 @@ python metanet setup init
 
 You can analyze existing PCAP file by using:
 
-```
+```bash
 python metanet analyze pcap -f example.pcap
 ```
 
 or you can generate sample data using:
 
-```
+```bash
 python metanet analyze sample --from 2020-01-01 --to 2020-01-07
 ```
 
 ### Step 4: Open Kibana and explore dashboards
 
-```
+```curl
 http://localhost:5601/s/metanet/
 ```
 

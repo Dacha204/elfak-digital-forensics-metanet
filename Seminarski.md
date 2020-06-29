@@ -125,7 +125,7 @@ Komunikacija sa mrežnog nivoa izgleda slično kao kod HTTPa, s tim što priliko
   oSkO2Y2L8kfK55rLmHMV7G
   ```
 
-- Posto se radi o HTTPS protokolu, na TCP nivou se naznacava da je paket namenjen servisu na portu 443 na udaljenom racunaru, ko kome slusa odgovarajuca HTTPS aplikacija
+- Pošto se radi o HTTPS protokolu, na TCP nivou se naznacava da je paket namenjen servisu na portu 443 na udaljenom racunaru, ko kome slusa odgovarajuca HTTPS aplikacija
 
 - Udaljeni server prima paket, dekriptuje sadržaj, prosesira zahtev korisnika i odgovara na njegov zahtev:
 

@@ -33,6 +33,7 @@ def __extract_packets(pcap_file_path,
                                     f"-etcp.srcport",
                                     f"-etcp.dstport",
                                     f"-etcp.stream",
+                                    f"-NmnNtdv",
                                     f"{filter}"
                                     ],
                                    capture_output=True,
